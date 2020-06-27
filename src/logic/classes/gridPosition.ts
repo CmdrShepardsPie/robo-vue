@@ -1,9 +1,4 @@
-export interface GridPosition {
-  x: number;
-  y: number;
-}
-
-export class GridPosition implements GridPosition {
+export class GridPosition  {
   x = 0;
   y = 0;
   constructor(position?: GridPosition) {

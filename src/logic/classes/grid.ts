@@ -2,21 +2,14 @@ import * as robotManager from '@/logic/managers/robot-manager';
 import { Square } from '@/logic/classes/square';
 import { Robot } from '@/logic/classes/robot';
 import { arrayOf } from '@/logic/helpers/object-helpers';
+import { ID } from '@/logic/classes/base-id';
 
-export interface Grid {
-  id: string;
-  squareRows: Square[][];
-  robots: Robot[];
-  add({ rows, columns }: { rows: number; columns: number }): void;
-  moveRobotToSquare(robot: Robot, toSquare: Square): void;
-}
-
-export class Grid implements Grid {
-  id = '';
+export class Grid extends ID {
   squareRows: Square[][];
   robots: Robot[] = [];
 
   constructor(public rowCount: number = 1, public columnCount: number = 1) {
+    super();
     this.squareRows = arrayOf(this.rowCount, y =>
       arrayOf(this.columnCount, x => new Square({ x, y }))
     );

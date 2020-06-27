@@ -10,8 +10,8 @@
             'has-robot': square.robots.length > 0
           }
         ]"
-        v-for="(square, s) in row"
-        :key="s"
+        v-for="square in row"
+        :key="square.id"
         @mousedown.stop="selectSquare($event, square)"
         @mouseup.stop="selectSquare($event, square)"
         @mouseleave="setDragging($event, square)"
@@ -29,9 +29,54 @@
           :key="robot.id"
           @mousedown.stop="selectRobot($event, robot)"
           @mouseup.stop="selectRobot($event, robot)"
+          @mouseleave="setHover($event, robot)"
+          @mouseenter="setHover($event, robot)"
         >
           {{ robot.name }}
         </div>
+        <div
+          v-if="
+            square.robots.length === 0 &&
+              findGhosts({ square: square.id }).length > 0
+          "
+          :class="[
+            'grid-view__robot',
+            'grid-view__robot-ghost',
+            {
+              'hover-bot':
+                (selectedRobot &&
+                  findGhosts({ square: square.id }).find(
+                    ghost => ghost.robot === selectedRobot.id
+                  )) ||
+                (hoveredRobot &&
+                  findGhosts({ square: square.id }).find(
+                    ghost => ghost.robot === hoveredRobot.id
+                  )),
+              'warning-path':
+                selectedRobot &&
+                findGhosts({ square: square.id }).find(
+                  ghost => ghost.robot !== selectedRobot.id
+                ),
+              'other-path':
+                !selectedRobot &&
+                hoveredRobot &&
+                findGhosts({ robot: hoveredRobot.id }).findIndex(
+                  ghost => ghost.square === square.id
+                ) === -1
+            }
+          ]"
+          :style="[
+            {
+              'animation-delay': `${
+                hoveredRobot
+                  ? findGhosts({ robot: hoveredRobot.id }).findIndex(
+                      ghost => ghost.square === square.id
+                    )
+                  : 0
+              }00ms`
+            }
+          ]"
+        ></div>
       </div>
     </div>
   </div>
@@ -48,16 +93,49 @@ import { Square } from '@/logic/classes/square';
   name: 'grid-view-component'
 })
 export default class GridViewComponent extends Vue {
-  grid: Grid = new Grid(4, 4);
+  grid: Grid = new Grid(12, 22);
+  ghosts: { square: string; robot: string }[] = [];
 
   selectedRobot: Robot | null = null;
   selectedSquare: Square | null = null;
   enteredSquare: Square | null = null;
   leftSquare: Square | null = null;
+  hoveredRobot: Robot | null = null;
 
   created() {
-    this.grid.moveRobotToSquare(new Robot('BoB'), this.grid.squareRows[0][0]);
-    this.grid.moveRobotToSquare(new Robot('BiB'), this.grid.squareRows[0][1]);
+    // this.grid.moveRobotToSquare(new Robot('BoB'), this.grid.squareRows[0][0]);
+    // this.grid.moveRobotToSquare(new Robot('BiB'), this.grid.squareRows[0][1]);
+    let id = 0;
+    for (let row = 2; row < 11; row += 3) {
+      for (let column = 2; column < 20; column++) {
+        this.grid.moveRobotToSquare(
+          new Robot(id.toString()),
+          this.grid.squareRows[row][column]
+        );
+        id++;
+        this.grid.moveRobotToSquare(
+          new Robot(id.toString()),
+          this.grid.squareRows[row + 1][column]
+        );
+        id++;
+      }
+    }
+  }
+
+  findGhosts({
+    square,
+    robot,
+    and
+  }: {
+    square?: string;
+    robot?: string;
+    and?: boolean;
+  }) {
+    return this.ghosts.filter(ghost =>
+      and
+        ? square === ghost.square && robot === ghost.robot
+        : square === ghost.square || robot === ghost.robot
+    );
   }
 
   selectRobot(event: MouseEvent, robot: Robot) {
@@ -67,6 +145,9 @@ export default class GridViewComponent extends Vue {
       } else {
         this.selectedRobot = robot;
       }
+    }
+    if (event.type === 'mouseup' && robot !== this.selectedRobot) {
+      this.selectedRobot = null;
     }
     if (this.selectedRobot && this.selectedSquare) {
       this.grid.moveRobotToSquare(this.selectedRobot, this.selectedSquare);
@@ -96,6 +177,25 @@ export default class GridViewComponent extends Vue {
       this.enteredSquare = square;
     } else if (event.type === 'mouseleave') {
       this.leftSquare = square;
+      if (
+        this.selectedRobot &&
+        this.findGhosts({
+          square: square.id,
+          robot: this.selectedRobot.id,
+          and: true
+        }).length === 0
+      ) {
+        this.ghosts.push({ square: square.id, robot: this.selectedRobot.id });
+      }
+    }
+  }
+
+  setHover(event: MouseEvent, robot: Robot) {
+    if (event.type === 'mouseenter') {
+      this.hoveredRobot = robot;
+    } else if (event.type === 'mouseleave') {
+      console.log(event.type);
+      this.hoveredRobot = null;
     }
   }
 }
@@ -104,12 +204,11 @@ export default class GridViewComponent extends Vue {
 <style lang="scss" scoped>
 .grid-view {
   user-select: none;
-  display: flex;
-  flex: auto;
+  display: inline-flex;
   flex-direction: column;
   justify-content: center;
-  background: #fff;
-  height: 100vh;
+  box-shadow: #999 0 0 2px;
+
   div {
     transition: background 500ms;
     &:hover {
@@ -127,19 +226,29 @@ export default class GridViewComponent extends Vue {
     display: flex;
     flex-direction: row;
     width: 5rem;
-    background: #ddd;
-    box-shadow: #999 inset 0 0 4px;
+    background-color: #ccc;
+    box-shadow: #aaa inset 0 0 2px;
     &:not(.has-robot) {
       &:hover {
-        background: #eee;
+        background-color: #ddd;
       }
       &.selected-square,
       &.hover-square {
-        background: #efe;
+        background-color: #efe;
       }
     }
   }
-
+  @keyframes glow {
+    0% {
+      background-color: #eee;
+    }
+    50% {
+      background-color: #ddd;
+    }
+    100% {
+      background-color: #ddd;
+    }
+  }
   &__robot {
     display: flex;
     flex-direction: column;
@@ -148,19 +257,32 @@ export default class GridViewComponent extends Vue {
     justify-items: center;
     align-items: center;
     flex: 1;
-    background: #ccc;
+    background-color: #eee;
     margin: 6px;
-    border-radius: 10px;
-    box-shadow: #666 0 0 2px;
-
+    border-radius: 5px;
+    box-shadow: #aaa 0 0 2px;
+    &-ghost {
+      background-color: transparent;
+      animation-fill-mode: both;
+      &.hover-bot {
+        background-color: #ddd;
+        animation: 2s ease-out 0s infinite normal glow;
+      }
+      &.warning-path {
+        background-color: #ffe;
+      }
+      &.other-path {
+        background-color: #bbb;
+      }
+    }
     &:hover {
-      background: #ddd;
+      background-color: #fff;
     }
     &.selected-robot {
-      background: #efe;
+      background-color: #efe;
     }
     &.invalid-target {
-      background: #fee;
+      background-color: #fee;
     }
   }
 }

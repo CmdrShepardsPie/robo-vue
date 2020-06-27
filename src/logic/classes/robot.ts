@@ -1,18 +1,12 @@
 import { Square } from '@/logic/classes/square';
 import { GridPosition } from '@/logic/classes/gridPosition';
+import { ID } from '@/logic/classes/base-id';
 
-export interface Robot {
-  id: string;
-  name: string;
-  sourceSquare?: Square;
-  targetSquare?: Square;
-  position: GridPosition;
-}
-
-export class Robot implements Robot {
-  id = '';
+export class Robot extends ID {
   sourceSquare?: Square;
   targetSquare?: Square;
   position: GridPosition = new GridPosition();
-  constructor(public name: string) {}
+  constructor(public name: string) {
+    super();
+  }
 }

@@ -1,8 +1,8 @@
-import { IGrid } from '@/logic/interfaces/i-grid';
 import { v4 as uuidv4 } from 'uuid';
 import { deepDupe } from '@/logic/helpers/object-helpers';
+import { Grid } from '@/logic/classes/grid';
 
-interface IMockGridDB {
+interface MockGridDB {
   grids: Grid[];
 }
 
