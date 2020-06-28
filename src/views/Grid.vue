@@ -1,21 +1,15 @@
 <template>
   <div class="grid-view" ref="gridView">
     <div class="grid-view__row" v-for="(row, r) in grid.squareRows" :key="r">
-      <div
-        :class="[
-          'grid-view__square',
-          {
-            'selected-square': square === selectedSquare,
-            'hover-square': selectedRobot && square === enteredSquare,
-            'has-robot': square.robots.length > 0
-          }
-        ]"
+      <square-component
         v-for="square in row"
         :key="square.id"
-        @mousedown="selectSquare($event, square)"
-        @mouseup="selectSquare($event, square)"
-        @mouseleave="setDragging($event, square)"
-        @mouseenter="setDragging($event, square)"
+        :square="square"
+        :selectable="true"
+        :selected="selectedSquare === square"
+        @selected="squareSelected(square, $event)"
+        @hovered="squareHovered(square, $event)"
+        @dragging="squareDragging(square, $event)"
       >
         <robot-component
           v-for="robot in square.robots"
@@ -23,56 +17,73 @@
           :robot="robot"
           :selectable="!selectedRobot || selectedRobot === robot"
           :selected="selectedRobot === robot"
-          :listen-element="$refs.gridView"
           @selected="robotSelected(robot, $event)"
           @hovered="robotHovered(robot, $event)"
           @dragging="robotDragging(robot, $event)"
         />
-        <!-- Removing Ghosts as I break everything into their own components -->
-        <!--        <div-->
-        <!--          v-if="-->
-        <!--            square.robots.length === 0 &&-->
-        <!--              findGhosts({ square: square.id }).length > 0-->
-        <!--          "-->
-        <!--          :class="[-->
-        <!--            'grid-view__robot',-->
-        <!--            'grid-view__robot-ghost',-->
-        <!--            {-->
-        <!--              'hover-bot':-->
-        <!--                (selectedRobot &&-->
-        <!--                  findGhosts({ square: square.id }).find(-->
-        <!--                    ghost => ghost.robot === selectedRobot.id-->
-        <!--                  )) ||-->
-        <!--                (hoveredRobot &&-->
-        <!--                  findGhosts({ square: square.id }).find(-->
-        <!--                    ghost => ghost.robot === hoveredRobot.id-->
-        <!--                  )),-->
-        <!--              'warning-path':-->
-        <!--                selectedRobot &&-->
-        <!--                findGhosts({ square: square.id }).find(-->
-        <!--                  ghost => ghost.robot !== selectedRobot.id-->
-        <!--                ),-->
-        <!--              'other-path':-->
-        <!--                !selectedRobot &&-->
-        <!--                hoveredRobot &&-->
-        <!--                findGhosts({ robot: hoveredRobot.id }).findIndex(-->
-        <!--                  ghost => ghost.square === square.id-->
-        <!--                ) === -1-->
-        <!--            }-->
-        <!--          ]"-->
-        <!--          :style="[-->
-        <!--            {-->
-        <!--              'animation-delay': `${-->
-        <!--                hoveredRobot-->
-        <!--                  ? findGhosts({ robot: hoveredRobot.id }).findIndex(-->
-        <!--                      ghost => ghost.square === square.id-->
-        <!--                    )-->
-        <!--                  : 0-->
-        <!--              }00ms`-->
-        <!--            }-->
-        <!--          ]"-->
-        <!--        ></div>-->
-      </div>
+      </square-component>
+      <!--      <div-->
+      <!--        :class="[-->
+      <!--          'grid-view__square',-->
+      <!--          {-->
+      <!--            'selected-square': square === selectedSquare,-->
+      <!--            'hover-square': selectedRobot && square === enteredSquare,-->
+      <!--            'has-robot': square.robots.length > 0-->
+      <!--          }-->
+      <!--        ]"-->
+      <!--        v-for="square in row"-->
+      <!--        :key="square.id"-->
+      <!--        @mousedown="selectSquare($event, square)"-->
+      <!--        @mouseup="selectSquare($event, square)"-->
+      <!--        @mouseleave="setDragging($event, square)"-->
+      <!--        @mouseenter="setDragging($event, square)"-->
+      <!--      >-->
+
+      <!--        &lt;!&ndash; Removing Ghosts as I break everything into their own components &ndash;&gt;-->
+      <!--        &lt;!&ndash;        <div&ndash;&gt;-->
+      <!--        &lt;!&ndash;          v-if="&ndash;&gt;-->
+      <!--        &lt;!&ndash;            square.robots.length === 0 &&&ndash;&gt;-->
+      <!--        &lt;!&ndash;              findGhosts({ square: square.id }).length > 0&ndash;&gt;-->
+      <!--        &lt;!&ndash;          "&ndash;&gt;-->
+      <!--        &lt;!&ndash;          :class="[&ndash;&gt;-->
+      <!--        &lt;!&ndash;            'grid-view__robot',&ndash;&gt;-->
+      <!--        &lt;!&ndash;            'grid-view__robot-ghost',&ndash;&gt;-->
+      <!--        &lt;!&ndash;            {&ndash;&gt;-->
+      <!--        &lt;!&ndash;              'hover-bot':&ndash;&gt;-->
+      <!--        &lt;!&ndash;                (selectedRobot &&&ndash;&gt;-->
+      <!--        &lt;!&ndash;                  findGhosts({ square: square.id }).find(&ndash;&gt;-->
+      <!--        &lt;!&ndash;                    ghost => ghost.robot === selectedRobot.id&ndash;&gt;-->
+      <!--        &lt;!&ndash;                  )) ||&ndash;&gt;-->
+      <!--        &lt;!&ndash;                (hoveredRobot &&&ndash;&gt;-->
+      <!--        &lt;!&ndash;                  findGhosts({ square: square.id }).find(&ndash;&gt;-->
+      <!--        &lt;!&ndash;                    ghost => ghost.robot === hoveredRobot.id&ndash;&gt;-->
+      <!--        &lt;!&ndash;                  )),&ndash;&gt;-->
+      <!--        &lt;!&ndash;              'warning-path':&ndash;&gt;-->
+      <!--        &lt;!&ndash;                selectedRobot &&&ndash;&gt;-->
+      <!--        &lt;!&ndash;                findGhosts({ square: square.id }).find(&ndash;&gt;-->
+      <!--        &lt;!&ndash;                  ghost => ghost.robot !== selectedRobot.id&ndash;&gt;-->
+      <!--        &lt;!&ndash;                ),&ndash;&gt;-->
+      <!--        &lt;!&ndash;              'other-path':&ndash;&gt;-->
+      <!--        &lt;!&ndash;                !selectedRobot &&&ndash;&gt;-->
+      <!--        &lt;!&ndash;                hoveredRobot &&&ndash;&gt;-->
+      <!--        &lt;!&ndash;                findGhosts({ robot: hoveredRobot.id }).findIndex(&ndash;&gt;-->
+      <!--        &lt;!&ndash;                  ghost => ghost.square === square.id&ndash;&gt;-->
+      <!--        &lt;!&ndash;                ) === -1&ndash;&gt;-->
+      <!--        &lt;!&ndash;            }&ndash;&gt;-->
+      <!--        &lt;!&ndash;          ]"&ndash;&gt;-->
+      <!--        &lt;!&ndash;          :style="[&ndash;&gt;-->
+      <!--        &lt;!&ndash;            {&ndash;&gt;-->
+      <!--        &lt;!&ndash;              'animation-delay': `${&ndash;&gt;-->
+      <!--        &lt;!&ndash;                hoveredRobot&ndash;&gt;-->
+      <!--        &lt;!&ndash;                  ? findGhosts({ robot: hoveredRobot.id }).findIndex(&ndash;&gt;-->
+      <!--        &lt;!&ndash;                      ghost => ghost.square === square.id&ndash;&gt;-->
+      <!--        &lt;!&ndash;                    )&ndash;&gt;-->
+      <!--        &lt;!&ndash;                  : 0&ndash;&gt;-->
+      <!--        &lt;!&ndash;              }00ms`&ndash;&gt;-->
+      <!--        &lt;!&ndash;            }&ndash;&gt;-->
+      <!--        &lt;!&ndash;          ]"&ndash;&gt;-->
+      <!--        &lt;!&ndash;        ></div>&ndash;&gt;-->
+      <!--      </div>-->
     </div>
   </div>
 </template>
@@ -83,12 +94,14 @@ import { Component } from 'vue-property-decorator';
 import { Grid } from '@/logic/classes/grid';
 import { Robot } from '@/logic/classes/robot';
 import { Square } from '@/logic/classes/square';
-import RobotComponent from '@/components/robot.vue';
+import RobotComponent from '@/components/Robot.vue';
+import SquareComponent from '@/components/Square.vue';
 
 @Component({
   name: 'grid-view-component',
   components: {
-    RobotComponent
+    RobotComponent,
+    SquareComponent
   }
 })
 export default class GridViewComponent extends Vue {
@@ -205,6 +218,11 @@ export default class GridViewComponent extends Vue {
     } else if (!selected && this.selectedRobot === robot) {
       this.selectedRobot = null;
     }
+    if (this.selectedRobot && this.selectedSquare) {
+      this.grid.moveRobotToSquare(this.selectedRobot, this.selectedSquare);
+      this.selectedRobot = null;
+      this.selectedSquare = null;
+    }
   }
 
   robotHovered(robot: Robot, selected: boolean) {
@@ -213,6 +231,28 @@ export default class GridViewComponent extends Vue {
 
   robotDragging(robot: Robot, selected: boolean) {
     console.log('robotDragging', robot, selected);
+  }
+
+  squareSelected(square: Square, selected: boolean) {
+    console.log('squareSelected', square, selected);
+    if (selected && !this.selectedSquare) {
+      this.selectedSquare = square;
+    } else if (!selected && this.selectedSquare === square) {
+      this.selectedSquare = null;
+    }
+    if (this.selectedRobot && this.selectedSquare) {
+      this.grid.moveRobotToSquare(this.selectedRobot, this.selectedSquare);
+      this.selectedRobot = null;
+      this.selectedSquare = null;
+    }
+  }
+
+  squareHovered(square: Square, selected: boolean) {
+    console.log('squareHovered', square, selected);
+  }
+
+  squareDragging(square: Square, selected: boolean) {
+    console.log('squareDragging', square, selected);
   }
 }
 </script>
@@ -236,23 +276,6 @@ export default class GridViewComponent extends Vue {
     flex-direction: row;
     justify-content: center;
     height: 5rem;
-  }
-
-  &__square {
-    display: flex;
-    flex-direction: row;
-    width: 5rem;
-    background-color: #ccc;
-    box-shadow: #aaa inset 0 0 2px;
-    &:not(.has-robot) {
-      &:hover {
-        background-color: #ddd;
-      }
-      &.selected-square,
-      &.hover-square {
-        background-color: #efe;
-      }
-    }
   }
 }
 </style>
