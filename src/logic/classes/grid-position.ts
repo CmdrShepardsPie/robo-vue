@@ -1,4 +1,4 @@
-export class GridPosition  {
+export class GridPosition {
   x = 0;
   y = 0;
   constructor(position?: GridPosition) {

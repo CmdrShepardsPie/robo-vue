@@ -1,5 +1,5 @@
 import { Square } from '@/logic/classes/square';
-import { GridPosition } from '@/logic/classes/gridPosition';
+import { GridPosition } from '@/logic/classes/grid-position';
 
 export class RobotSquarePosition {
   // null assignment assertion isn't ideal but works for this example

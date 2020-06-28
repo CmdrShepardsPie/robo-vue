@@ -1,5 +1,5 @@
 import { Square } from '@/logic/classes/square';
-import { GridPosition } from '@/logic/classes/gridPosition';
+import { GridPosition } from '@/logic/classes/grid-position';
 import { ID } from '@/logic/classes/base-id';
 
 export class Robot extends ID {

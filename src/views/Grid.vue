@@ -1,5 +1,5 @@
 <template>
-  <div class="grid-view">
+  <div class="grid-view" ref="gridView">
     <div class="grid-view__row" v-for="(row, r) in grid.squareRows" :key="r">
       <div
         :class="[
@@ -12,71 +12,66 @@
         ]"
         v-for="square in row"
         :key="square.id"
-        @mousedown.stop="selectSquare($event, square)"
-        @mouseup.stop="selectSquare($event, square)"
+        @mousedown="selectSquare($event, square)"
+        @mouseup="selectSquare($event, square)"
         @mouseleave="setDragging($event, square)"
         @mouseenter="setDragging($event, square)"
       >
-        <div
-          :class="[
-            'grid-view__robot',
-            {
-              'selected-robot': robot === selectedRobot,
-              'invalid-target': selectedRobot && selectedRobot !== robot
-            }
-          ]"
+        <robot-component
           v-for="robot in square.robots"
           :key="robot.id"
-          @mousedown.stop="selectRobot($event, robot)"
-          @mouseup.stop="selectRobot($event, robot)"
-          @mouseleave="setHover($event, robot)"
-          @mouseenter="setHover($event, robot)"
-        >
-          {{ robot.name }}
-        </div>
-        <div
-          v-if="
-            square.robots.length === 0 &&
-              findGhosts({ square: square.id }).length > 0
-          "
-          :class="[
-            'grid-view__robot',
-            'grid-view__robot-ghost',
-            {
-              'hover-bot':
-                (selectedRobot &&
-                  findGhosts({ square: square.id }).find(
-                    ghost => ghost.robot === selectedRobot.id
-                  )) ||
-                (hoveredRobot &&
-                  findGhosts({ square: square.id }).find(
-                    ghost => ghost.robot === hoveredRobot.id
-                  )),
-              'warning-path':
-                selectedRobot &&
-                findGhosts({ square: square.id }).find(
-                  ghost => ghost.robot !== selectedRobot.id
-                ),
-              'other-path':
-                !selectedRobot &&
-                hoveredRobot &&
-                findGhosts({ robot: hoveredRobot.id }).findIndex(
-                  ghost => ghost.square === square.id
-                ) === -1
-            }
-          ]"
-          :style="[
-            {
-              'animation-delay': `${
-                hoveredRobot
-                  ? findGhosts({ robot: hoveredRobot.id }).findIndex(
-                      ghost => ghost.square === square.id
-                    )
-                  : 0
-              }00ms`
-            }
-          ]"
-        ></div>
+          :robot="robot"
+          :selectable="!selectedRobot || selectedRobot === robot"
+          :selected="selectedRobot === robot"
+          :listen-element="$refs.gridView"
+          @selected="robotSelected(robot, $event)"
+          @hovered="robotHovered(robot, $event)"
+          @dragging="robotDragging(robot, $event)"
+        />
+        <!-- Removing Ghosts as I break everything into their own components -->
+        <!--        <div-->
+        <!--          v-if="-->
+        <!--            square.robots.length === 0 &&-->
+        <!--              findGhosts({ square: square.id }).length > 0-->
+        <!--          "-->
+        <!--          :class="[-->
+        <!--            'grid-view__robot',-->
+        <!--            'grid-view__robot-ghost',-->
+        <!--            {-->
+        <!--              'hover-bot':-->
+        <!--                (selectedRobot &&-->
+        <!--                  findGhosts({ square: square.id }).find(-->
+        <!--                    ghost => ghost.robot === selectedRobot.id-->
+        <!--                  )) ||-->
+        <!--                (hoveredRobot &&-->
+        <!--                  findGhosts({ square: square.id }).find(-->
+        <!--                    ghost => ghost.robot === hoveredRobot.id-->
+        <!--                  )),-->
+        <!--              'warning-path':-->
+        <!--                selectedRobot &&-->
+        <!--                findGhosts({ square: square.id }).find(-->
+        <!--                  ghost => ghost.robot !== selectedRobot.id-->
+        <!--                ),-->
+        <!--              'other-path':-->
+        <!--                !selectedRobot &&-->
+        <!--                hoveredRobot &&-->
+        <!--                findGhosts({ robot: hoveredRobot.id }).findIndex(-->
+        <!--                  ghost => ghost.square === square.id-->
+        <!--                ) === -1-->
+        <!--            }-->
+        <!--          ]"-->
+        <!--          :style="[-->
+        <!--            {-->
+        <!--              'animation-delay': `${-->
+        <!--                hoveredRobot-->
+        <!--                  ? findGhosts({ robot: hoveredRobot.id }).findIndex(-->
+        <!--                      ghost => ghost.square === square.id-->
+        <!--                    )-->
+        <!--                  : 0-->
+        <!--              }00ms`-->
+        <!--            }-->
+        <!--          ]"-->
+        <!--        ></div>-->
       </div>
     </div>
   </div>
@@ -88,9 +83,13 @@ import { Component } from 'vue-property-decorator';
 import { Grid } from '@/logic/classes/grid';
 import { Robot } from '@/logic/classes/robot';
 import { Square } from '@/logic/classes/square';
+import RobotComponent from '@/components/robot.vue';
 
 @Component({
-  name: 'grid-view-component'
+  name: 'grid-view-component',
+  components: {
+    RobotComponent
+  }
 })
 export default class GridViewComponent extends Vue {
   grid: Grid = new Grid(12, 22);
@@ -149,11 +148,11 @@ export default class GridViewComponent extends Vue {
     if (event.type === 'mouseup' && robot !== this.selectedRobot) {
       this.selectedRobot = null;
     }
-    if (this.selectedRobot && this.selectedSquare) {
-      this.grid.moveRobotToSquare(this.selectedRobot, this.selectedSquare);
-      this.selectedRobot = null;
-      this.selectedSquare = null;
-    }
+    // if (this.selectedRobot && this.selectedSquare) {
+    //   this.grid.moveRobotToSquare(this.selectedRobot, this.selectedSquare);
+    //   this.selectedRobot = null;
+    //   this.selectedSquare = null;
+    // }
   }
 
   selectSquare(event: MouseEvent, square: Square) {
@@ -198,6 +197,23 @@ export default class GridViewComponent extends Vue {
       this.hoveredRobot = null;
     }
   }
+
+  robotSelected(robot: Robot, selected: boolean) {
+    console.log('robotSelected', robot, selected);
+    if (selected && !this.selectedRobot) {
+      this.selectedRobot = robot;
+    } else if (!selected && this.selectedRobot === robot) {
+      this.selectedRobot = null;
+    }
+  }
+
+  robotHovered(robot: Robot, selected: boolean) {
+    console.log('robotHovered', robot, selected);
+  }
+
+  robotDragging(robot: Robot, selected: boolean) {
+    console.log('robotDragging', robot, selected);
+  }
 }
 </script>
 
@@ -236,53 +252,6 @@ export default class GridViewComponent extends Vue {
       &.hover-square {
         background-color: #efe;
       }
-    }
-  }
-  @keyframes glow {
-    0% {
-      background-color: #eee;
-    }
-    50% {
-      background-color: #ddd;
-    }
-    100% {
-      background-color: #ddd;
-    }
-  }
-  &__robot {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-content: center;
-    justify-items: center;
-    align-items: center;
-    flex: 1;
-    background-color: #eee;
-    margin: 6px;
-    border-radius: 5px;
-    box-shadow: #aaa 0 0 2px;
-    &-ghost {
-      background-color: transparent;
-      animation-fill-mode: both;
-      &.hover-bot {
-        background-color: #ddd;
-        animation: 2s ease-out 0s infinite normal glow;
-      }
-      &.warning-path {
-        background-color: #ffe;
-      }
-      &.other-path {
-        background-color: #bbb;
-      }
-    }
-    &:hover {
-      background-color: #fff;
-    }
-    &.selected-robot {
-      background-color: #efe;
-    }
-    &.invalid-target {
-      background-color: #fee;
     }
   }
 }
